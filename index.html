@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HEIC to PNG Converter</title>
+</head>
+<body>
+  <h1>HEIC to PNG Converter</h1>
+  <input type="file" id="heicInput" multiple accept=".heic" />
+  <div id="output"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.3/dist/heic2any.min.js"></script>
+  <script>
+    document.getElementById("heicInput").addEventListener("change", async (event) => {
+      const files = event.target.files;
+      const output = document.getElementById("output");
+      output.innerHTML = "";
+
+      for (const file of files) {
+        try {
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: "image/png",
+          });
+
+          const url = URL.createObjectURL(convertedBlob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = file.name.replace(/\.heic$/i, ".png");
+          link.textContent = `Download ${link.download}`;
+          link.style.display = "block";
+
+          const img = document.createElement("img");
+          img.src = url;
+          img.style.maxWidth = "300px";
+          img.style.display = "block";
+          img.style.marginBottom = "10px";
+
+          output.appendChild(img);
+          output.appendChild(link);
+        } catch (err) {
+          console.error("Conversion failed for", file.name, err);
+          const errMsg = document.createElement("p");
+          errMsg.textContent = `Failed to convert ${file.name}`;
+          output.appendChild(errMsg);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
