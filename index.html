@@ -1,50 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>HEIC to PNG Converter</title>
+  <meta charset="UTF-8" />
+  <title>HEIC to PNG Folder Converter</title>
 </head>
 <body>
-  <h1>HEIC to PNG Converter</h1>
-  <input type="file" id="heicInput" multiple accept=".heic" />
-  <div id="output"></div>
+  <h1>Convert a Folder of HEIC Images to PNG</h1>
+  <input type="file" id="folderInput" webkitdirectory directory multiple accept=".heic" />
+  <button id="convertBtn">Convert and Download ZIP</button>
+  <div id="status"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.3/dist/heic2any.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
   <script>
-    document.getElementById("heicInput").addEventListener("change", async (event) => {
-      const files = event.target.files;
-      const output = document.getElementById("output");
-      output.innerHTML = "";
+    const input = document.getElementById("folderInput");
+    const convertBtn = document.getElementById("convertBtn");
+    const status = document.getElementById("status");
+
+    convertBtn.addEventListener("click", async () => {
+      const files = input.files;
+      if (!files.length) {
+        status.innerText = "Please upload a folder first.";
+        return;
+      }
+
+      const zip = new JSZip();
+      status.innerText = "Converting images...";
 
       for (const file of files) {
-        try {
-          const convertedBlob = await heic2any({
-            blob: file,
-            toType: "image/png",
-          });
+        if (file.name.toLowerCase().endsWith(".heic")) {
+          try {
+            const pngBlob = await heic2any({
+              blob: file,
+              toType: "image/png"
+            });
 
-          const url = URL.createObjectURL(convertedBlob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = file.name.replace(/\.heic$/i, ".png");
-          link.textContent = `Download ${link.download}`;
-          link.style.display = "block";
+            const arrayBuffer = await pngBlob.arrayBuffer();
+            const newName = file.name.replace(/\.heic$/i, ".png");
+            zip.file(newName, arrayBuffer);
 
-          const img = document.createElement("img");
-          img.src = url;
-          img.style.maxWidth = "300px";
-          img.style.display = "block";
-          img.style.marginBottom = "10px";
-
-          output.appendChild(img);
-          output.appendChild(link);
-        } catch (err) {
-          console.error("Conversion failed for", file.name, err);
-          const errMsg = document.createElement("p");
-          errMsg.textContent = `Failed to convert ${file.name}`;
-          output.appendChild(errMsg);
+            status.innerText = `Converted: ${file.name}`;
+          } catch (err) {
+            console.error(`Failed to convert ${file.name}:`, err);
+            status.innerText = `Error converting ${file.name}`;
+          }
         }
       }
+
+      status.innerText = "Creating ZIP file...";
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "converted_pngs.zip";
+      link.textContent = "Download Converted PNGs";
+      link.style.display = "block";
+      link.style.marginTop = "10px";
+
+      status.innerText = "";
+      document.body.appendChild(link);
     });
   </script>
 </body>
